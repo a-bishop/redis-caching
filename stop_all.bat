@@ -1,0 +1,1 @@
+docker stop db && docker stop gs1 && docker stop gs2 && docker stop gs3 && docker stop lb && docker stop redis

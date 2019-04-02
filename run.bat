@@ -1,1 +1,0 @@
-docker run -d --privileged --name lab2 -p 80:80 -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v c:/Users/Administrator/Documents/piggie/lab2/html:/var/www/html icspiggie/piggie-base:initial

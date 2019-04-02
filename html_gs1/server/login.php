@@ -6,7 +6,9 @@
 //   create $result
 //----------------------------
 require_once('database.php');
+require_once('redis.php');
 
+error_log("gs1 login ------------------------------------");
 $id = $_REQUEST["id"];
 $snip = $_REQUEST["snip"];
 $friends = json_decode($_REQUEST["friends"]);
@@ -73,52 +75,76 @@ if(! $retval )
 // ---------------------------
 // DB CALL: get all key/value pairs from global_config, save them as proper
 // associative array key/value pairs. 
+
+$key = "game.config";
 $config = [];
-$sql = "SELECT * FROM global_config";
-$retval = $conn->query( $sql );
-if(! $retval )
-{	
-	$m = "Could not get global config: " . $conn->error;
- 	error_log($m);
-	die('{"status":"error", "message":"' . $m . '"}');
-}
+if ($redis->exists($key)) {
+	$config = $redis->get($key);
+} else {
+	$sql = "SELECT * FROM global_config";
+	$retval = $conn->query( $sql );
+	if(! $retval )
+	{	
+		$m = "Could not get global config: " . $conn->error;
+		error_log($m);
+		die('{"status":"error", "message":"' . $m . '"}');
+	}
 
-while ($row = $retval->fetch_assoc())
-{
-	$config[$row["k"]] = $row["v"];
+	while ($row = $retval->fetch_assoc())
+	{
+		$config[$row["k"]] = $row["v"];
+	}
+	$redis->set($key, $config);
 }
-
 
 // ---------------------------
 //     COLLECTION DATA
 // ---------------------------
 // DB CALL: get basic collection data.
+
 $collection_items = [];
-$sql = "SELECT * FROM collection_items a left join user_collection_items b on a.id = b.item_id and user_id=$uid";
+$key = "collection_items";
+if ($redis->exists($key)) {
+	$collection_items = $redis->get($key);
+} else {
+	$sql = "SELECT * FROM collection_items";
+	$retval = $conn->query( $sql );
+	if(! $retval) {
+		$m = "Could not get collection data: " . $conn->error;
+		error_log($m);
+		die('{"status":"error", "message":"' . $m . '"}');
+	}
+
+	while ($row = $retval->fetch_assoc()) {
+		if (!array_key_exists($row['id'], $collection_items)) {
+			$collection_items[$row['id']] = array("image_url" => $row['image_url'], "cost" => $row['cost']);
+		}
+	}
+	$redis->set($key, $collection_items);
+}
+
+$sql = "SELECT * FROM user_collection_items WHERE user_id=$uid";
 $retval = $conn->query( $sql );
 if(! $retval) {
-	$m = "Could not get collection data: " . $conn->error;
+	$m = "Could not get user collection items: " . $conn->error;
  	error_log($m);
 	die('{"status":"error", "message":"' . $m . '"}');
 }
-
 while ($row = $retval->fetch_assoc()) {
-	if (!array_key_exists($row['id'], $collection_items)) {
-		$collection_items[$row['id']] = array("image_url" => $row['image_url'], "cost" => $row['cost']);
-	}
-
 	if ($row['user_id'] != null) {
-		$user_data["collections"][$row['id']] = array("count" => $row['count']);
+		$user_data["collections"][$row['item_id']] = array("count" => $row['count']);
 	}
 }
 
 // ---------------------------
 //    prepare final output
 // ---------------------------
+
 $result["config"] = $config;
 $result["user"] = $user_data;
 $result["collections"] = $collection_items;
 $result["status"] = "success";
+
 
 echo json_encode($result);
 $conn->close();

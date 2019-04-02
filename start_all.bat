@@ -1,0 +1,1 @@
+docker start db && docker start gs1 && docker start gs2 && docker start gs3 && docker start lb && docker start redis

@@ -1,0 +1,3 @@
+node piggie.js --user=123456 --gsip=localhost --snip=localhost --time=10 --verbose
+
+docker exec -it __ tail -f /var/log/apache2/access.log

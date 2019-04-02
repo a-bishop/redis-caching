@@ -1,6 +1,6 @@
 <?php
 
-$dbhost = 'localhost:3306';
+$dbhost = '172.17.0.2:3306';
 $dbuser = 'piggie_user';
 $dbpass = 'piggie';
 $conn = new mysqli($dbhost, $dbuser, $dbpass);

@@ -53,6 +53,15 @@ var nonAppFriends;
 var game_id;
 	
 calculateAverages = function() {
+
+	var totalSn = averages.snCount * averages.sn;
+	for (var i = 0; i < times.sn.length; i++) {
+		totalSn += times.sn[i];
+	}
+	averages.snCount += times.sn.length;
+
+	if (averages.snCount != 0) averages.sn = totalSn / averages.snCount;
+	times.sn = [];
 		
 	var totalInit = averages.initCount * averages.init;
 	for (var i = 0; i < times.init.length; i++) {
@@ -98,7 +107,7 @@ update = function() {
 	reportData.errors = JSON.parse(JSON.stringify(errors));
 	reportData.percent = Math.min(1.0, (Date.now() - startTime) / totalTime);
 
-	if (verbose) console.log(JSON.stringify(reportData));
+	if (!verbose) console.log(JSON.stringify(reportData));
 	return reportData;
 }
 	
@@ -125,12 +134,12 @@ piggie = {
 					friends = JSON.parse(JSON.stringify(resp));
 					appFriends = JSON.stringify(friends.app_friends);
 					// nonAppFriends = JSON.stringify(friends.non_app_friends);
-					console.log(`app friends = ${appFriends}`);
+					// console.log(`app friends = ${appFriends}`);
 					// console.log(`non-app friends = ${nonAppFriends}`);
 			
 					// Record the elapsed time and allow the master loop to continue to
 					// start a new game.
-					times.init.push(Date.now() - startTime);
+					times.sn.push(Date.now() - startTime);
 					blocks.push("init");
 					if (verbose) console.log("Friends update complete");
 					blockDone = true;
@@ -394,6 +403,7 @@ var blocks = [ "sn" ];
 
 // A data structure to record various lag times the user would experience.
 var times = { 
+	sn: [],
 	init: [],
 	startGame: [],
 	play: [],
@@ -401,7 +411,8 @@ var times = {
 };
 
 var averages = {
-	
+	sn: 0,
+	snCount: 0,
 	init: 0,
 	initCount: 0,
 	startGame: 0,
@@ -457,12 +468,14 @@ var masterTimer = setInterval(function() {
 			else if (next == "play") piggie.play();
 			else if (next == "purchase") piggie.purchase();
 		} else {
+
+			clearInterval(masterTimer);
 			var reportData = update();
 			var totalTime = currentTime - startTime;
 			
 			if (verbose) {
 				console.log("Game Complete.");
-				console.log(JSON.stringify(reportData));
+				console.log("sn times: " + reportData.averages.sn + " ms (" + reportData.errors.sn + " errors)");
 				console.log("init times: " + reportData.averages.init + " ms (" + reportData.errors.init + " errors)");
 				console.log("start_game times : " + reportData.averages.startGame + " ms (" + reportData.errors.startGame + " errors)");
 				console.log("play times: " + reportData.averages.play + " ms (" + reportData.errors.play + " errors)");
